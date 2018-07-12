@@ -1,0 +1,100 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+	<title>BananoBet Bet Verifier</title>
+	<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css">
+	<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/crypto-js.min.js"></script>
+</head>
+<body>
+	<div class="jumbotron">
+		<h1 class="text-center">BananoBet Verification Tool</h1>
+		<h3 class="text-center">Provable Fairness</h3>
+	</div>
+	<div class="container">
+		<div class="well">
+			<center>
+				<div class="cont">
+					<h3>Enter the data from your bet log or the "Previous Seed" section of the "Change Seed" pop up.</h3>
+					<br>
+					<textarea class="form-control" id="ssh" placeholder="SHA256 Hash of server seed"></textarea>
+					<br>
+					<textarea class="form-control" id="ss" placeholder="Server seed"></textarea>
+					<br>
+					<textarea class="form-control" id="cs" placeholder="Client seed"></textarea>
+					<br>
+					<input class="form-control" id="sn" placeholder="Starting nonce (>=0)" type="number"></input>
+					<br>
+					<input class="form-control" id="nb" placeholder="Number of Bets (>=1)" type="number"></input>
+					<br>
+					<button class="btn btn-primary" id="verify">Verify</button>
+				</div>
+
+				<h2>Results:</h2>
+
+				<div class="cont">
+					<p id="results"></p>
+				</div>
+			</center>
+		</div>
+	</div>
+	<footer class="text-center">
+		<a href="https://github.com/BananoBet/bananobet.github.io">View source on GitHub</a>
+	</footer>
+	<script type="text/javascript">
+		function check(event, ignoreInput) {
+			var ssh = document.getElementById('ssh').value;
+			var ss = document.getElementById('ss').value;
+			var cs = document.getElementById('cs').value;
+			var sn = document.getElementById('sn').value;
+			sn = parseInt(sn);
+			var nb = document.getElementById('nb').value;
+			nb = parseInt(nb);
+	
+			document.getElementById('results').innerHTML = '';
+			if (ssh != check.lastssh) { // Let's not repeat 'hash is correct' for the same hash.
+				ssh2 = CryptoJS.SHA256(ss);
+				if (ssh2 + '' == ssh) {
+					println('<span class="label label-success">Server secret hash is correct</span>');
+				} else {
+					println('<span class="label label-danger">Server hash check failed!</span>');
+					println('Purported hash: ' + ssh);
+					println('Actual hash: ' + ssh2);
+				}
+			}
+	
+			for (j = sn + nb - 1; j >= sn; j--) {
+				hash = CryptoJS.HmacSHA512(cs + ':' + j, ss).toString(CryptoJS.enc.Hex);
+				i = 0;
+				roll = -1;
+				while (roll == -1) { // Non-reference implementation derived from the 'Fair?' description.
+					if (i == 25) {
+						l3 = hash.substring(125, 128);
+						l3p = l3.parseInt(l3, 16);
+						println('last 3: ' + l3 + ' as int: ' + l3p); // kept on because it's cool to get this far
+						roll = l3p / 10000;
+					} else {
+						f5 = hash.substring(5 * i, 5 + 5 * i);
+						f5p = parseInt(f5, 16);
+						//println(f5 + ' as int: ' + f5p);
+						if (f5p < 1000000) {
+							roll = f5p / 10000;
+						}
+						i++;
+					}
+				}
+				println(j + ': ' + roll.toFixed(2));
+			}
+			check.lastssh = ssh;
+		}
+	
+		function println(s) {
+			results = document.getElementById('results');
+			results.innerHTML = results.innerHTML + s + '<br>';
+		}
+
+		document.getElementById('verify').addEventListener('click', check);
+	</script>
+</body>
+</html>
